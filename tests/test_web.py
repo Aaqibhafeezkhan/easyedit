@@ -571,5 +571,54 @@ class WebPortTest(unittest.TestCase):
                     with self.assertRaises(SystemExit):
                         web.get_port()
 
+class FileRangeTest(unittest.TestCase):
+    def _request(self, path, range_header):
+        handler = mock.MagicMock()
+        handler.headers = {"Range": range_header}
+        handler.command = "GET"
+
+        body = bytearray()
+        handler.wfile.write.side_effect = body.extend
+
+        web.Handler._file(handler, path)
+
+        headers = {
+            call.args[0]: call.args[1]
+            for call in handler.send_header.call_args_list
+        }
+
+        return handler, bytes(body), headers
+
+    def test_suffix_range_serves_last_n_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "video.mp4"
+            path.write_bytes(bytes(range(100)))
+
+            handler, body, headers = self._request(path, "bytes=-10")
+
+        handler.send_response.assert_called_once_with(206)
+        self.assertEqual(body, bytes(range(90, 100)))
+        self.assertEqual(headers["Content-Length"], "10")
+        self.assertEqual(headers["Content-Range"], "bytes 90-99/100")
+
+    def test_range_start_at_file_size_returns_416(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "video.mp4"
+            path.write_bytes(bytes(range(100)))
+
+            handler, body, headers = self._request(path, "bytes=100-")
+
+        handler.send_response.assert_called_once_with(416)
+
+    def test_reversed_range_returns_416(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "video.mp4"
+            path.write_bytes(bytes(range(100)))
+
+            handler, body, headers = self._request(path, "bytes=20-10")
+
+        handler.send_response.assert_called_once_with(416)
+
+
 if __name__ == "__main__":
     unittest.main()

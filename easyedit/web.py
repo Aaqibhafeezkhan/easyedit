@@ -447,21 +447,51 @@ class Handler(BaseHTTPRequestHandler):
         size = path.stat().st_size
         rng = self.headers.get("Range")
         start, end = 0, size - 1
-        if rng and (m := re.match(r"bytes=(\d*)-(\d*)", rng)):
-            if m.group(1):
-                start = int(m.group(1))
-            if m.group(2):
-                end = min(int(m.group(2)), size - 1)
-        length = max(0, end - start + 1)
-        self.send_response(206 if rng else 200)
+        partial = False
+
+        if rng and (m := re.fullmatch(r"bytes=(\d*)-(\d*)", rng.strip())):
+            first, last = m.groups()
+
+            if first or last:
+                partial = True
+
+                if not first:
+                    # Suffix range: bytes=-N means the last N bytes.
+                    suffix_length = int(last)
+                    if suffix_length == 0 or size == 0:
+                        start = size
+                        end = size - 1
+                    else:
+                        start = max(0, size - suffix_length)
+                        end = size - 1
+                else:
+                    start = int(first)
+                    if last:
+                        end = min(int(last), size - 1)
+                    else:
+                        end = size - 1
+
+                if start >= size or start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+
+        length = end - start + 1
+        self.send_response(206 if partial else 200)
         self.send_header("Content-Type", ctype)
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Length", str(length))
-        if rng:
+
+        if partial:
             self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+
         self.end_headers()
+
         if self.command == "HEAD":
             return
+
         with path.open("rb") as fh:
             fh.seek(start)
             left = length
