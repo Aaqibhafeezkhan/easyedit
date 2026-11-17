@@ -145,7 +145,7 @@
     <input id="movie" placeholder="Movie name — e.g. Gladiator" autocomplete="off" autofocus>
     <button id="go">Make the edit</button>
   </form>
-  <div class="optbar"><button class="toggle" type="button" id="toggle">Options ▾</button><span class="writer" id="writer"></span></div>
+  <div class="optbar"><button class="toggle" type="button" id="toggle" aria-expanded="false" aria-controls="opts">Options <span aria-hidden="true">▾</span></button><span class="writer" id="writer"></span></div>
   <div class="opts" id="opts">
     <div><label for="speech">Speech scene (file, URL or search)</label><input id="speech" placeholder="auto"></div>
     <div><label for="montage">Montage sources (comma separated)</label><input id="montage" placeholder="auto"></div>
@@ -238,7 +238,8 @@ const ago = t => {
 
 $('toggle').onclick = () => {
   const open = $('opts').classList.toggle('open');
-  $('toggle').textContent = open ? 'Options ▴' : 'Options ▾';
+  $('toggle').setAttribute('aria-expanded', String(open));
+  $('toggle').querySelector('span').textContent = open ? '▴' : '▾';
 };
 
 function editBody(movie) {

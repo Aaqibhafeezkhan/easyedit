@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import os
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
 
@@ -333,6 +334,27 @@ class JobInfoTest(unittest.TestCase):
 
             self.assertEqual(titles, {"truncated-plan": "Truncated Plan", "list-plan": "List Plan",
                                       "good-plan": "Good Edit"})
+
+
+class OptionsAccessibilityTest(unittest.TestCase):
+    def test_options_toggle_describes_its_initial_panel_state(self):
+        elements = {}
+
+        class Parser(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if "id" in attrs:
+                    elements[attrs["id"]] = (tag, attrs)
+
+        page = (web.WEB / "index.html").read_text(encoding="utf-8")
+        Parser().feed(page)
+        tag, toggle = elements["toggle"]
+        self.assertEqual(tag, "button")
+        self.assertEqual(toggle.get("aria-expanded"), "false")
+        panel_id = toggle.get("aria-controls")
+        self.assertEqual(panel_id, "opts")
+        self.assertIn(panel_id, elements)
+        self.assertNotIn("open", elements[panel_id][1].get("class", "").split())
 
 
 class ThumbnailAccessibilityTest(unittest.TestCase):
