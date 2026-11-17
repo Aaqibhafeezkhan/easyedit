@@ -33,7 +33,7 @@ Local-first · no API keys · works with your AI bot</p>
   <a href="#community">Community</a>
 </p>
 
-<p align="center">🛠 <b>Built in the open</b>: 16 contributors · 10 good first issues · we review PRs within 24h → <a href="https://github.com/blixvip/easyedit/issues/19">start here</a></p>
+<p align="center">🛠 <b>Built in the open</b>: 21 contributors · 8 good first issues · we review PRs within 24h → <a href="https://github.com/blixvip/easyedit/issues/19">start here</a></p>
 
 ---
 
